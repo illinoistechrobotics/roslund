@@ -16,22 +16,6 @@
 //    with this program; if not, write to the Free Software Foundation, Inc.,
 //    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
-// TODO:
-// protect all functions that use sem_wait by blocking all signals, the user
-// may want to use our functions within a signal handler. A deadlock will
-// occur if the semaphore is already taken. Eg:
-// Main Routine takes the semaphore
-// Main routine is interrupted by a signal
-// signal handler waits for main routine to release the semaphore
-// ^^^^ This never happens so, the signal handler waits forever
-//
-// We need to block signals before we take, and unblock after we release
-//
-
-//static int inc_tail_index(robot_queue *q);
-//static int inc_head_index(robot_queue *q);
-
 // robot_queue_create -- initiaizes a new queue
 void robot_queue_create(robot_queue *q) {
   q->head_index = 0;

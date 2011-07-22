@@ -17,10 +17,11 @@
 //    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 // defines the digital pins if they are input or output
-// 0 input, 1 output, 2 for rx tx pins 0,1 , 3 for PWM arduion it's pins 3,5,6,9,10,11 pins 5 and 6 share 
+// input, output, 2 for rx tx pins 0,1, PWM pins 3,5,6,9,10,11 pins 5 and 6 share 
 // with millis() and micros() so have diffrent pwm times then 3,9,10,11
 int pin_mode[] = {2,2,OUTPUT,OUTPUT,OUTPUT,OUTPUT,OUTPUT,OUTPUT,OUTPUT,OUTPUT,OUTPUT,OUTPUT,OUTPUT,OUTPUT};
 
+//controller definitions 
 int CON_XAXIS,
     CON_YAXIS,
     CON_RAXIS,

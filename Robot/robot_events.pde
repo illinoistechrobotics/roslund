@@ -43,8 +43,6 @@ void on_shutdown() {
   ev.value = 0;
 }
 
-int gripper = 0;
-
 void on_button_up(robot_event *ev) {
   if(ev->index == CON_ARM_UP){
     digitalWrite(2,LOW);
@@ -54,6 +52,7 @@ void on_button_up(robot_event *ev) {
   }
 }
 
+int gripper = 0;
 void on_button_down(robot_event *ev) {	
 
   if(ev->index == CON_ARM_UP){
@@ -76,15 +75,27 @@ void on_adc_change(robot_event *ev){
   
 }
 
-#define MIN_MOTOR_SPEED 130
-#define MAX_MOTOR_SPEED 250
+#define MIN_MOTOR_SPEED 64
+#define MAX_MOTOR_SPEED 255
 
 void on_motor(robot_event *ev) {
-  ev->value = map(ev->value, 0, 255, MIN_MOTOR_SPEED, MAX_MOTOR_SPEED);
-  if(ev->index == 0) analogWrite(3, ev->value);
-  if(ev->index == 1) analogWrite(9, ev->value);
-  if(ev->index == 2) analogWrite(10, ev->value);
-  if(ev->index == 3) analogWrite(11, ev->value);
+
+  if(ev->index == 0){
+    ev->value = map(ev->value, 0, 255, MIN_MOTOR_SPEED, MAX_MOTOR_SPEED);
+    analogWrite(3, ev->value);
+  }
+  if(ev->index == 1){
+    ev->value = map(ev->value, 0, 255, 64, MAX_MOTOR_SPEED); //due to pin broken
+    analogWrite(6, ev->value);
+  }
+  if(ev->index == 2){
+    ev->value = map(ev->value, 0, 255, MIN_MOTOR_SPEED, MAX_MOTOR_SPEED);
+    analogWrite(10, ev->value);
+  }4
+  if(ev->index == 3){
+    ev->value = map(ev->value, 0, 255, MIN_MOTOR_SPEED, MAX_MOTOR_SPEED);
+    analogWrite(11, ev->value);
+  }
 }
 
 void on_status_code(robot_event *ev) {

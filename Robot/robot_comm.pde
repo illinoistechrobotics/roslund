@@ -46,7 +46,7 @@ int send_event(robot_event *ev) {
 // xbee_recv_event - receive a robot comm datagram
 // 	event - pointer to datagram to overwrite
 // 	return - 0 on failure, no-zero otherwise
-char buf[BUF_SIZE + 1]; // = "U,40,01,0001,42\nU,40,1,2,43\nU,40,1,3,44\n,U,40,1,1";
+char buf[BUF_SIZE + 1];
 int count = 0;
 int start = 0;  
 int newline = 0;
@@ -76,13 +76,13 @@ int xbee_recv_event(robot_queue *q){
   if(newline <= start || count == BUF_SIZE){ //new line not found or found before the start byte
     if(count == BUF_SIZE){ //buf full and no vaild datagram found, clear the buffer
       //need to copy the suff after the start byte to begining 
-      if((count - start) < 16){//if the last start byte is less than 16 away from end then copy arry
-        memmove(&buf[0], &buf[start], count-start); //???????????????????? writing own will be more efficient 
+      if((count - start) < 16){//if the last start byte is less than 16 away from end then copy array else no point
+        memcpy(&buf[0], &buf[start], count-start); 
         count = count-start;
         start = 0;
         newline = 0;
       }
-      else{ //found no start byte and buf full clear all of the buffer
+      else{ //buf full and last start byte is more than max packet size clear all of the buffer
         count = 0;    //no need to copy since the buf is grabage 
         start = 0;
         newline = 0;
@@ -128,12 +128,6 @@ int xbee_recv_event(robot_queue *q){
   checksum = data[4];
 
   unsigned int checksum2 = (ev.command + ev.index + byte(ev.value) + byte(ev.value >> 8)) % 255;
-
-  //Serial.print("TEST ");
-  //Serial.print(checksum);
-  //Serial.print(" ");
-  //Serial.println(checksum2);
-
 
   if(checksum2 == checksum){
     robot_queue_enqueue(q,&ev);

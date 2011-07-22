@@ -18,10 +18,11 @@
 
 #define ADC_COUNT 1 //Number of ADC's to poll starting from ADC 0 to 5
 
-unsigned long last_adc_read = 0;
-
 //need to define ADC in adc.h
 #ifdef ADC_
+
+unsigned long last_adc_read = 0;
+
 void adc_read(robot_queue *q) {
   int ADCVals[6] = {0,0,0,0,0,0};
   int inval;
