@@ -116,9 +116,9 @@ int xbee_thread_create(robot_queue *q, char *usbport){
         return 0;
     }
     // create the thread
-    if(pthread_create(&xtid, NULL, xbee_thread_main, q) != 0) {
-        return 0;
-    }
+//    if(pthread_create(&xtid, NULL, xbee_thread_main, q) != 0) {
+//        return 0;
+//    }
     return 1;
 	
 }   

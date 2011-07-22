@@ -39,30 +39,25 @@ int send_event(robot_event *ev) {
   //Serial.print((byte)(ev->value >> 8), BYTE);    //upper value byte
   Serial.println(checksum,HEX);                  //check sum
 
-    return 1;
+  return 1;
 }
 
+#define BUF_SIZE 127
 // xbee_recv_event - receive a robot comm datagram
 // 	event - pointer to datagram to overwrite
 // 	return - 0 on failure, no-zero otherwise
-
-char buf[126] = "U,40,1,0,41\nU,40,1,0,41\nU,40,1,0,41\n"; //yes i know but each datagram can be up to 16 bytes 
+char buf[BUF_SIZE + 1]; // = "U,40,01,0001,42\nU,40,1,2,43\nU,40,1,3,44\n,U,40,1,1";
 int count = 0;
 int start = 0;  
 int newline = 0;
 
 int xbee_recv_event(robot_queue *q){
 
-  robot_event *ev;
-  unsigned int checksum = 0;
+  while(Serial.available() > 0 && count < BUF_SIZE){
+      buf[count]=Serial.read();
+      count++;
+  }
 
-//  while(Serial.available() > 0 && count < 125){
-//    buf[count]=Serial.read();
-//    count++;
-//  }
-  
-  buf[39]= 'U';
-  count = 39;
   //loop through to find 0x55 and \n
   for(int i=newline; i <= count; i++){
     if(buf[i] == 'U'){ //start byte
@@ -77,18 +72,18 @@ int xbee_recv_event(robot_queue *q){
       break;
     }
   }
-  
-  if(newline <= start){ //new line not found or found before the start byte
-    if(count == 125){ //buf full and no vaild datagram found, clear the buffer
+
+  if(newline <= start || count == BUF_SIZE){ //new line not found or found before the start byte
+    if(count == BUF_SIZE){ //buf full and no vaild datagram found, clear the buffer
       //need to copy the suff after the start byte to begining 
-      if(start == 0){ //found no start byte and buf full clear all of the buffer
-        count = 0;    //no need to copy since the buf is grabage 
+      if((count - start) < 16){//if the last start byte is less than 16 away from end then copy arry
+        memmove(&buf[0], &buf[start], count-start); //???????????????????? writing own will be more efficient 
+        count = count-start;
         start = 0;
         newline = 0;
       }
-      else{ 
-        memmove(&buf[0], &buf[start], count-start); //???????????????????? writing own will be more efficient 
-        count = count-start;
+      else{ //found no start byte and buf full clear all of the buffer
+        count = 0;    //no need to copy since the buf is grabage 
         start = 0;
         newline = 0;
       }
@@ -98,35 +93,50 @@ int xbee_recv_event(robot_queue *q){
 
   //found valid datagram
   //parse datagram comma delimited
-  for(int i=start; i<newline; i++){
-    Serial.print(buf[i], HEX);
-    
-  }
-  Serial.print('\n');
-  
-  
-  Serial.println("");
-  start = 0;
-  newline = 0;
-  return 1;
-  
-  char *newbuf = &buf[start];
-  char *temp;
-  temp = strsep(&newbuf, "\n");
-  newbuf = temp;
-  temp = strsep(&newbuf, ",");
-  xtoi(temp, &ev->command);
-  temp = strsep(&newbuf, ",");
-  xtoi(temp, &ev->index);
-  temp = strsep(&newbuf, ",");
-  xtoi(temp, &ev->value);
-  temp = strsep(&newbuf, ",");
-  xtoi(temp, &checksum);
 
-  unsigned int checksum2 = (ev->command + ev->index + ev->value + byte(ev->value >> 8)) % 255;
+  char *newbuf = &buf[start];
+  char *temp = newbuf;
+  unsigned int data[5];
+  buf[newline] = ',';
+
+  int j=0;
+  int i=0;
+
+  do{
+    //Serial.print(newbuf[i]);
+    i++;
+    if(newbuf[i] == ','){
+      newbuf[i] = '\0';
+      if(j > 5){
+        return 0;
+      }
+      xtoi(temp, &data[j]);
+      //Serial.println(data[j]);
+      j++;
+      i++;
+      temp = &newbuf[i];
+    }
+  }
+  while(&newbuf[i-1] != &buf[newline]);
+
+  robot_event ev;
+  unsigned int checksum;
+  
+  ev.command = (unsigned char)data[1];
+  ev.index = (unsigned char)data[2];
+  ev.value = data[3];
+  checksum = data[4];
+
+  unsigned int checksum2 = (ev.command + ev.index + byte(ev.value) + byte(ev.value >> 8)) % 255;
+
+  //Serial.print("TEST ");
+  //Serial.print(checksum);
+  //Serial.print(" ");
+  //Serial.println(checksum2);
+
 
   if(checksum2 == checksum){
-    robot_queue_enqueue(q,ev);
+    robot_queue_enqueue(q,&ev);
     return 1;
   }
   else{
@@ -190,53 +200,4 @@ int xtoi(const char* xs, unsigned int* result)
   return 1;
 }
 
-// same as above but for chars
-int xtoi(const char* xs, unsigned char* result)
-{
-  size_t szlen = strlen(xs);
-  int i, xv, fact;
-
-  if (szlen > 0)
-  {
-    // Converting more than 8bit hexadecimal value?
-    if (szlen>2) return 2; // exit
-
-    // Begin conversion here
-    *result = 0;
-    fact = 1;
-
-    // Run until no more character to convert
-    for(i=szlen-1; i>=0 ;i--)
-    {
-      if (isxdigit(*(xs+i)))
-      {
-        if (*(xs+i)>=97)
-        {
-          xv = ( *(xs+i) - 97) + 10;
-        }
-        else if ( *(xs+i) >= 65)
-        {
-          xv = (*(xs+i) - 65) + 10;
-        }
-        else
-        {
-          xv = *(xs+i) - 48;
-        }
-        *result += (xv * fact);
-        fact *= 16;
-      }
-      else
-      {
-        // Conversion was abnormally terminated
-        // by non hexadecimal digit, hence
-        // returning only the converted with
-        // an error value 4 (illegal hex character)
-        return 4;
-      }
-    }
-  }
-
-  // Nothing to convert
-  return 1;
-}
 

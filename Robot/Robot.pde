@@ -44,7 +44,7 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly: 
   if(robot_queue_dequeue(&qu, &event)){
-    //send_event(&event);
+    send_event(&event);
     switch (event.command & 0xF0) {
     case ROBOT_EVENT_CMD:
       failcount = 0;
@@ -88,7 +88,7 @@ void loop() {
       }
       else if(event.index == 3){ // internal 10 hertz timer used for failsafe mode
         failcount ++;
-        send_event(&event);
+        //send_event(&event);
         if(failcount >= 3){    // 300-400 millis seconds with no signal to failsafe
           //failsafe_mode(&qu);
         }
