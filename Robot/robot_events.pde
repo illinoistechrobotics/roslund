@@ -112,10 +112,6 @@ void on_command_code(robot_event *ev) {
   robot_event send_ev;
   switch(ev->command) {
   case ROBOT_EVENT_CMD_NOOP:
-    send_ev.command = ROBOT_EVENT_NET_STATUS_OK;
-    send_ev.index = 0;
-    send_ev.value = 0;
-    send_event(&send_ev);
     break;
   case ROBOT_EVENT_CMD_START:
     break;

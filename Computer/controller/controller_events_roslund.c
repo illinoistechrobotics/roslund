@@ -123,8 +123,8 @@ void on_1hz_timer(robot_event *ev) {
 
 void on_10hz_timer(robot_event *ev) {
 	 robot_event ev1;
-	 ev1.command = ROBOT_EVENT_CMD_NOOP;
-	 ev1.index = 0;
+	 ev1.command = ROBOT_EVENT_TIMER;
+	 ev1.index = 1;
 	 ev1.value = 0;
 	 send_event(&ev1);
 }

@@ -20,8 +20,8 @@
 #include "events.h"
 #include "robot_queue.h"
 
-//#define ADC   //To use ADC code
-#define BAUD 9600
+//#define ADC_   //To use ADC code #define ADC alread defined somewhere else
+#define BAUD 57600
 
 unsigned int failcount;
 robot_queue qu;
@@ -44,6 +44,7 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly: 
   if(robot_queue_dequeue(&qu, &event)){
+    //send_event(&event);
     switch (event.command & 0xF0) {
     case ROBOT_EVENT_CMD:
       failcount = 0;
@@ -87,8 +88,9 @@ void loop() {
       }
       else if(event.index == 3){ // internal 10 hertz timer used for failsafe mode
         failcount ++;
+        send_event(&event);
         if(failcount >= 3){    // 300-400 millis seconds with no signal to failsafe
-          failsafe_mode(&qu);
+          //failsafe_mode(&qu);
         }
       }
       break;
@@ -96,7 +98,7 @@ void loop() {
   }
   xbee_recv_event(&qu);
   timer(&qu);
-#ifdef ADC
+#ifdef ADC_
   adc_read(&qu);
 #endif
 

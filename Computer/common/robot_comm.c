@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdio.h>
@@ -143,7 +144,8 @@ int xbee_thread_destroy(){
 
 
 int open_xbee(char *usbport) {
-	xbeefd = open(usbport, O_RDWR | O_NDELAY, 0);
+	//xbeefd = open(usbport, O_RDWR, 0); // for debug purpose can open a file
+    xbeefd = open(usbport, O_RDWR | O_NDELAY | O_ASYNC | O_NOCTTY | O_NONBLOCK, 0);
 	if (xbeefd < 0)
 	{
 		log_errno(1, "Error opening xbee USB port");
@@ -314,18 +316,32 @@ int send_event(robot_event *ev) {
 	}
 		
 	unsigned char checksum = (unsigned char)((ev->command + ev->index + ev->value + (ev->value >>8)) % 255);
-	unsigned char output_buf[] = {0xAA, 									//Start byte
-								(unsigned char)ev->command, 				//command byte
-								(unsigned char)ev->index, 					//index byte
-								(unsigned char)ev->value, 					//lower value byte
-								(unsigned char)ev->value >> 8,				//upper value byte
-								checksum}; 									//check sum 
-	if (write(xbeefd, output_buf, sizeof(robot_event)+2) < 0)
+	char temp[30];    //these are large to prevent overflow
+    char data[100];
+    char *comma = ",";
+
+    data[0] = 'U';
+    data[1] = '\0';
+    strcat(data, comma);
+    sprintf(temp, "%X", (int)ev->command);
+    strcat(data, temp);
+    strcat(data, comma);
+    sprintf(temp, "%X", (int)ev->index);
+    strcat(data, temp);
+    strcat(data, comma);
+    sprintf(temp, "%X", (int)ev->value);
+    strcat(data, temp);
+    strcat(data, comma);
+    sprintf(temp, "%X", (int)checksum);
+    strcat(data, temp);
+    strcat(data, "\n");
+
+    if (write(xbeefd, data, strlen(data)) < 0)
 	{
 		log_errno(0, "Error sending on xbee");
 		return 0;
 	}
-    usleep(5000);
+    usleep(2800);  //based on 57600 baud need to make more flexiable
 	
 	return 1;
 #else
@@ -391,21 +407,67 @@ int recv_event(robot_event *ev) {
 // xbee_recv_event - receive a robot comm datagram
 // 	event - pointer to datagram to overwrite
 // 	return - 0 on failure, no-zero otherwise
-#define xbee_read_size (sizeof(robot_event)+1)  //for the robot_event plus one for the check sum
+#define xbee_read_size (sizeof(robot_event)+1)  //??????????????????????this might not be needed
 int xbee_recv_event(robot_event *ev){
-	/*
-	char buf[xbee_read_size];
-	int readn = 0;
-	int temp = 0;
 	
-	while(1){
-		if (rio_readn(xbeefd, buf, 1) < 0){
-			return 0;
-		}
-		if(buf[0] == 0xAA){ //start byte
-			break;
-		}
-	}
+	char buf[126];
+	int readn = 0;
+    int count = 0;
+	int temp = 0;
+    int i;
+    int start = 0;
+    int newline = 0;
+	fd_set rfds;
+
+    FD_ZERO(&rfds);
+    FD_SET(xbeefd,&rfds);
+
+    while(1){
+        if(select(xbeefd + 1, &rfds, NULL, NULL, NULL)){
+            if(count < 125){
+                count = count + read(xbeefd, &buf[count], 126-count);
+            }
+            for(i=0; i<=count; i++){
+                if(buf[i] == 0x55){
+                    start = count;
+                    break;
+                }
+            }
+            for(i=start; i<=count; i++){
+                if(buf[i] == '\n'){
+                    newline = count;
+                    break;
+                }
+            }
+            if(newline <= start){
+                if(count == 125){
+                    if(start == 0){
+                        count = 0;
+                        start = 0;
+                        newline = 0;
+                    }
+                    else{
+                        memmove(&buf[0], &buf[start], count-start);
+                        count = count-start;
+                        start = 0;
+                        newline = 0;
+                    }
+                }
+            }
+            else{
+                char newbuf[126];
+                memcpy(&newbuf[0], &buf[start], newline-start);
+                newbuf[newline-start] = '\0';
+                printf("%s",newbuf);
+                fflush(stdout);
+                count = 0;
+            }
+        }
+    }
+
+    //???????????????????????????????????
+    //this needs to be updated for ascci charactures 
+    //???????????????????????????????????
 	while(readn < xbee_read_size){
 		temp = rio_readn(xbeefd, buf + readn, xbee_read_size - readn);
 		if(temp < 0){
@@ -421,7 +483,7 @@ int xbee_recv_event(robot_event *ev){
 		ev->value = (buf[3] << 8) + buf[2];
 		log_event_received(ev);
 	}
-    */
+    
 	return 1;
 	
 }
@@ -431,6 +493,9 @@ int xbee_recv_event(robot_event *ev){
  * helper function for xbee_recv_event buffered serial port 
  */
 /* $begin rio_readn */
+//???????????????????????????????????????????
+//may need to be changed 
+//???????????????????????????????????????????
 ssize_t rio_readn(int fd, void *usrbuf, size_t n) 
 {
     size_t nleft = n;
