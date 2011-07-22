@@ -341,7 +341,7 @@ int send_event(robot_event *ev) {
 		log_errno(0, "Error sending on xbee");
 		return 0;
 	}
-    usleep(2800);  //based on 57600 baud need to make more flexiable
+    usleep(2800);  //based on 57600 baud need to make more flexiable about 360hz update rate
 	
 	return 1;
 #else

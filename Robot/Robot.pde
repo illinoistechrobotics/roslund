@@ -110,7 +110,7 @@ void failsafe_mode(robot_queue *q) {
   ev.index = 0;
   ev.value = 127;
   int i;
-  for(i = 0; i<=5; i++){
+  for(i = 0; i<5; i++){
     ev.index = i;
     robot_queue_enqueue(q, &ev);
   }

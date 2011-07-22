@@ -91,7 +91,7 @@ void on_motor(robot_event *ev) {
   if(ev->index == 2){
     ev->value = map(ev->value, 0, 255, MIN_MOTOR_SPEED, MAX_MOTOR_SPEED);
     analogWrite(10, ev->value);
-  }4
+  }
   if(ev->index == 3){
     ev->value = map(ev->value, 0, 255, MIN_MOTOR_SPEED, MAX_MOTOR_SPEED);
     analogWrite(11, ev->value);
