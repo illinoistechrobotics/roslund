@@ -18,7 +18,6 @@
 
 #ifndef ROBOT_COMM_H
 #define ROBOT_COMM_H
-#define Xbee
 
 #include <sys/types.h>
 #include <sys/socket.h>

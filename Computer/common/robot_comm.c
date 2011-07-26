@@ -132,9 +132,9 @@ int xbee_thread_create(robot_queue *q, char *usbport, unsigned int b){
         return 0;
     }
     // create the thread
-//??    if(pthread_create(&xtid, NULL, xbee_thread_main, q) != 0) {
-//??        return 0;
-//??    }
+    if(pthread_create(&xtid, NULL, xbee_thread_main, q) != 0) {
+        return 0;
+    }
     return 1;
 
 }
@@ -247,10 +247,10 @@ void *net_thread_main(void *arg) {
     robot_queue *q = (robot_queue *)arg;
     robot_event ev;
 
-	while(1) {
-		recv_event(&ev);
-        robot_queue_enqueue(q, &ev);
-	}
+    while(1) {
+        recv_event(&ev);
+//        robot_queue_enqueue(q, &ev);
+    }
 }
 
 // open_udp_server - binds to a UDP port
@@ -357,9 +357,10 @@ int send_event(robot_event *ev) {
             log_errno(0, "Error sending on xbee");
             return 0;
         }
-        usleep(2800);  //based on 57600 baud need to make more flexiable about 360hz update rate 
+        usleep(strlen(data)*10000000/baud);  //based on 57600 baud need to make more flexiable about 360hz update rate 
         //will be longer delay for smaller baud rates and shorter for faster baud rates
         //bytes/(baud/10)
+
         return 1;
     }
     else{
@@ -479,9 +480,6 @@ int xbee_recv_event(robot_event *ev){
         //found vaild datagram
         //parse datagram comma delimited
 
-//        printf("found vaild datagram");
-//        return 1;
-
         char *newbuf = &buf[start];
         char *temp = newbuf;
         unsigned int data[5];
@@ -494,6 +492,7 @@ int xbee_recv_event(robot_event *ev){
             if(newbuf[i] == ','){
                 newbuf[i] = '\0';
                 if(j>5){
+                    printf("error");
                     return 0;
                 }
                 xtoi(temp, &data[j]);
@@ -509,7 +508,7 @@ int xbee_recv_event(robot_event *ev){
 
         ev.command = (unsigned char)data[1];
         ev.index = (unsigned char)data[2];
-        ev.value = (unsigned short)data[4];
+        ev.value = (unsigned short)data[3];
         checksum = data[4];
 
         unsigned int checksum2 = (unsigned int)((ev.command + ev.index +(unsigned char)ev.value + (unsigned char)(ev.value >>8)) % 255);
@@ -520,7 +519,6 @@ int xbee_recv_event(robot_event *ev){
         else{
             return 0;
         }
-        fflush(stdout);
     }
     return 0; //should never get here
 }
@@ -575,7 +573,7 @@ int xtoi(const char* xs, unsigned int* result)
 }
 
 int isxdigit(char ch){
-    if((ch >= '0' && ch <= 'F') || (ch >= 'a' && ch <= 'f')){
+    if((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f')){
         return 1;
     }
     else{

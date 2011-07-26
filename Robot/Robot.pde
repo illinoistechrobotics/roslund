@@ -44,7 +44,7 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly: 
   if(robot_queue_dequeue(&qu, &event)){
-    send_event(&event);                  //for debug
+    //send_event(&event);                  //for debug
     switch (event.command & 0xF0) {
     case ROBOT_EVENT_CMD:
       failcount = 0;
