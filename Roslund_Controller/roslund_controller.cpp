@@ -333,8 +333,8 @@ int main (int argc, char * argv[])
 		max=0;
 		mot1 = -(input[Ly_bit] - input[Lx_bit] + input[Rx_bit]);
 		mot2 = (input[Ly_bit] + input[Lx_bit] + input[Rx_bit]);
-		mot3 = -(input[Ly_bit] + input[Lx_bit] - input[Rx_bit]);
-		mot4 = (-input[Ly_bit] + input[Lx_bit] + input[Rx_bit]);
+		mot3 = -(input[Ly_bit] - input[Lx_bit] - input[Rx_bit]);
+		mot4 = (-input[Ly_bit] - input[Lx_bit] + input[Rx_bit]);
 
 		if(abs(mot1) >  127 || abs(mot2) > 127 || abs(mot3) > 127 || abs(mot4) > 127) {
 			max = 0;

@@ -28,12 +28,22 @@
 // See common/events.h for complete information on events.
 //
 
-void on_init() {
+void on_init(robot_queue *q) {
   robot_event ev;
   ev.command = ROBOT_EVENT_CMD_START;
   ev.index = 0;
   ev.value = 0;
   send_event(&ev);
+  
+  ev.command = ROBOT_EVENT_MOTOR;
+  ev.index = 0;
+  ev.value = 127;
+  int i;
+  for(i = 0; i<5; i++){
+    ev.index = i;
+    robot_queue_enqueue(q, &ev);
+  }
+  
 }
 
 void on_shutdown() {
@@ -75,8 +85,8 @@ void on_adc_change(robot_event *ev){
   
 }
 
-#define MIN_MOTOR_SPEED 64
-#define MAX_MOTOR_SPEED 255
+#define MIN_MOTOR_SPEED 34
+#define MAX_MOTOR_SPEED 154
 
 void on_motor(robot_event *ev) {
 
@@ -85,7 +95,7 @@ void on_motor(robot_event *ev) {
     analogWrite(3, ev->value);
   }
   if(ev->index == 1){
-    ev->value = map(ev->value, 0, 255, 64, MAX_MOTOR_SPEED); //due to pin broken
+    ev->value = map(ev->value, 0, 255, 64, 184); //due to pin broken
     analogWrite(6, ev->value);
   }
   if(ev->index == 2){

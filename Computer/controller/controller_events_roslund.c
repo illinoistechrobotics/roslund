@@ -71,14 +71,14 @@ void on_axis_change(robot_event *ev) {
         if(axis == CON_XAXIS)
             xAxis = value;
         if(axis == CON_RAXIS)
-            rAxis = -value;
+            rAxis = value;
         xNew = (int)xAxis - 127;
         yNew = (int)yAxis - 127;
         rNew = (int)rAxis - 127;
         mot1 = -(yNew - xNew + rNew);
-        mot2 = (yNew + xNew - rNew);
-        mot3 = -(yNew + xNew + rNew);
-        mot4 = (yNew - xNew - rNew);
+        mot2 = (yNew + xNew + rNew);
+        mot3 = -(yNew - xNew - rNew);
+        mot4 = (-yNew - xNew + rNew);
         if(abs(mot1) >  127 || abs(mot2) > 127 || abs(mot3) > 127 || abs(mot4) > 127) {
             max = 0;
             if(abs(mot1)>max)

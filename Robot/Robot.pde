@@ -38,7 +38,7 @@ void setup() {
   open_serial(BAUD);
   
   // init event
-  on_init();
+  on_init(&qu);
 }
 
 void loop() {
