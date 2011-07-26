@@ -28,7 +28,7 @@ int send_event(robot_event *ev) {
 
   byte checksum = (unsigned char)((ev->command + ev->index + byte(ev->value) + byte(ev->value >>8)) % 255);
 
-  Serial.print(0x55,BYTE);                 //Start byte
+  Serial.print(0x55,BYTE);                     //Start byte
   Serial.print(',');
   Serial.print(ev->command,HEX);               //command byte
   Serial.print(',');
@@ -36,13 +36,13 @@ int send_event(robot_event *ev) {
   Serial.print(',');
   Serial.print(ev->value,HEX);                 //vlaue two bytes
   Serial.print(',');
-  //Serial.print((byte)(ev->value >> 8), BYTE);    //upper value byte
-  Serial.println(checksum,HEX);                  //check sum
-
+  Serial.print(checksum,HEX);                  //check sum
+  Serial.print('\n');                          //newline
+  
   return 1;
 }
 
-#define BUF_SIZE 127
+#define BUF_SIZE 256
 // xbee_recv_event - receive a robot comm datagram
 // 	event - pointer to datagram to overwrite
 // 	return - 0 on failure, no-zero otherwise
@@ -58,6 +58,7 @@ int xbee_recv_event(robot_queue *q){
       count++;
   }
 
+  start = newline;
   //loop through to find 0x55 and \n
   for(int i=newline; i <= count; i++){
     if(buf[i] == 'U'){ //start byte
@@ -67,16 +68,19 @@ int xbee_recv_event(robot_queue *q){
   }
 
   for(int i=start+1; i <= count; i++){
-    if(buf[i] == '\n'){
+    if(buf[i] == '\n'){ //end byte
       newline = i;
       break;
     }
   }
 
-  if(newline <= start || count == BUF_SIZE){ //new line not found or found before the start byte
+//????????????????????????????????
+//need to test
+//?????????????????????????????????
+  if(newline <= start){// || count == BUF_SIZE){ //new line not found or found before the start byte
     if(count == BUF_SIZE){ //buf full and no vaild datagram found, clear the buffer
       //need to copy the suff after the start byte to begining 
-      if((count - start) < 16){//if the last start byte is less than 16 away from end then copy array else no point
+      if((count - start) <= 16){//if the last start byte is less than 16 away from end then copy array else no point
         memcpy(&buf[0], &buf[start], count-start); 
         count = count-start;
         start = 0;
@@ -103,7 +107,6 @@ int xbee_recv_event(robot_queue *q){
   int i=0;
 
   do{
-    //Serial.print(newbuf[i]);
     i++;
     if(newbuf[i] == ','){
       newbuf[i] = '\0';
@@ -111,7 +114,6 @@ int xbee_recv_event(robot_queue *q){
         return 0;
       }
       xtoi(temp, &data[j]);
-      //Serial.println(data[j]);
       j++;
       i++;
       temp = &newbuf[i];
@@ -119,17 +121,14 @@ int xbee_recv_event(robot_queue *q){
   }
   while(&newbuf[i-1] != &buf[newline]);
 
-  robot_event ev;
-  unsigned int checksum;
-  
-  ev.command = (unsigned char)data[1];
-  ev.index = (unsigned char)data[2];
-  ev.value = data[3];
-  checksum = data[4];
+  unsigned int checksum = ((unsigned char)data[1] + (unsigned char)data[2] + byte(data[3]) + byte(data[3] >> 8)) % 255;
 
-  unsigned int checksum2 = (ev.command + ev.index + byte(ev.value) + byte(ev.value >> 8)) % 255;
+  if(checksum == data[4]){
+    robot_event ev;
+    ev.command = (unsigned char)data[1];
+    ev.index = (unsigned char)data[2];
+    ev.value = data[3];
 
-  if(checksum2 == checksum){
     robot_queue_enqueue(q,&ev);
     return 1;
   }
@@ -160,27 +159,21 @@ int xtoi(const char* xs, unsigned int* result)
     fact = 1;
 
     // Run until no more character to convert
-    for(i=szlen-1; i>=0 ;i--)
-    {
-      if (isxdigit(*(xs+i)))
-      {
-        if (*(xs+i)>=97)
-        {
+    for(i=szlen-1; i>=0 ;i--){
+      if (isxdigit(*(xs+i))){
+        if (*(xs+i)>=97){
           xv = ( *(xs+i) - 97) + 10;
         }
-        else if ( *(xs+i) >= 65)
-        {
+        else if ( *(xs+i) >= 65){
           xv = (*(xs+i) - 65) + 10;
         }
-        else
-        {
+        else{
           xv = *(xs+i) - 48;
         }
         *result += (xv * fact);
         fact *= 16;
       }
-      else
-      {
+      else{
         // Conversion was abnormally terminated
         // by non hexadecimal digit, hence
         // returning only the converted with
@@ -189,9 +182,19 @@ int xtoi(const char* xs, unsigned int* result)
       }
     }
   }
-
   // Nothing to convert
   return 1;
 }
 
+int isxdigit(char ch){
+  //????????????????????????????????
+  //need to find right code
+  //????????????????????????????????
+  if((ch >= '0' && ch <= 'F') || (ch >= 'a' && ch <= 'f')){
+    return 1;
+  }
+  else{
+    return 0;
+  }
+}
 

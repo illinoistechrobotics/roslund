@@ -30,8 +30,6 @@
 #include "events.h"
 #include "profile.h"
 
-#define Xbee
-
 static robot_queue *sig_queue;
 
 void term_handler(int signal);
@@ -39,69 +37,80 @@ void usage(char *program_name);
 
 int main(int argc, char *argv[])
 {
-	//server's address
-	char *server_name = "192.168.1.99";
-	unsigned int server_port = 0;
-	char *usb_port;
-	log_level = 0;
+    //server's address
+    char *server_name = "192.168.1.99";
+    unsigned int server_port = 31337;
+    char *usb_port = "/dev/ttyUSB0";
+    unsigned int baud = 57600;
+    log_level = 0;
     bool shutdown = false;
-	
-	 int opt;
+
+    int opt;
 
     // queue stuff
     robot_queue q;
     robot_event ev;
-	
-	setProfile('p');
-	while((opt = getopt(argc, argv, "j:n:p:v:x:")) != -1)
-		switch (opt)
-		{
-			case 'n':
-				server_name = optarg;
-			 	break;
-			case 'p':
-				server_port = atoi(optarg);
-			 	break;
-			case 'v':
-				log_level = atoi(optarg);
-			 	break;
-			case 'j':
-				setProfile(optarg[0]);
-				break;
-			case 'x':
-				 usb_port = optarg;
-				 break;
-			case '?':
-				usage(argv[0]);
-				exit(1);
-				break;
-				
-		}
 
-	if(server_port == 0){
-		server_port = 31337;
-	}
+    setProfile('p');
+    while((opt = getopt(argc, argv, "j:n:p:v:x:")) != -1)
+        switch (opt)
+        {
+            case 'n':
+                isXbee = 0;
+                server_name = optarg;
+                break;
+            case 'p':
+                isXbee = 0;
+                server_port = atoi(optarg);
+                break;
+            case 'v':
+                log_level = atoi(optarg);
+                break;
+            case 'j':
+                setProfile(optarg[0]);
+                break;
+            case 'x':
+                isXbee = 1;
+                break;
+            case 'w':
+                isXbee = 0;
+                break;
+            case 'u':
+                isXbee = 1;
+                usb_port = optarg;
+                break;
+            case 'b':
+                 baud = (unsigned int)atoi(optarg);
+                 break;
+            case '?':
+                usage(argv[0]);
+                exit(1);
+                break;
+        }
+
     robot_queue_create(&q);
     sig_queue = &q;
 
     // initialize threads
-	if(!joy_thread_create(&q)) {
-		log_string(2, "Cannot create the joystick thread");
-	}
-	
-#ifdef Xbee
-	if(!xbee_thread_create(&q, usb_port)){
-		log_string(2, "Cannot create the xbee thread");
-	}
-#else
-	if(!net_thread_client_create(&q, server_name, server_port)) {
-		log_string(2, "Cannot create the network client thread");
-	}
-#endif
+    if(!joy_thread_create(&q)) {
+        log_string(2, "Cannot create the joystick thread"); 
+    }
 
-	if(!timer_thread_create(&q)) {
-		log_string(2, "cannot create the timer thread");
-	}
+    //xbee need to be passed in byt the -x command
+    if(isXbee){
+        if(!xbee_thread_create(&q, usb_port, baud)){
+            log_string(2, "Cannot create the xbee thread");
+        }
+    }
+    else{
+        if(!net_thread_client_create(&q, server_name, server_port)) {
+            log_string(2, "Cannot create the network client thread");
+        }
+    }
+
+    if(!timer_thread_create(&q)) {
+        log_string(2, "cannot create the timer thread");
+    }
 	// Install the signal handlers
 	if(signal(SIGHUP, term_handler) == SIG_ERR)
 		log_errno(0, "Error setting the SIGHUP handler");
@@ -116,9 +125,9 @@ int main(int argc, char *argv[])
     ev.value = 0;
     robot_queue_enqueue(&q, &ev);
 
-	// main loop, checks for a joystick update
-	// and runs the events
-	while(!shutdown) {
+    // main loop, checks for a joystick update
+    // and runs the events
+    while(!shutdown) {
         if (!robot_queue_wait_event(&q, &ev))
             shutdown = true;
         switch(ev.command) {
@@ -145,25 +154,26 @@ int main(int argc, char *argv[])
                 if(ev.index == 2) {
                     on_1hz_timer(&ev);
                 }
-				break;
-			case ROBOT_EVENT_ADC:
-				on_adc_change(&ev);
-				break;
-			case ROBOT_EVENT_READ_VAR:
-				//on_read_variable(&ev);
-				break;
+                break;
+            case ROBOT_EVENT_ADC:
+                on_adc_change(&ev);
+                break;
+            case ROBOT_EVENT_READ_VAR:
+                //on_read_variable(&ev);
+                break;
             default:
                 break;
         }
-	}
+    }
 
-#ifdef Xbee
-	xbee_thread_destroy();
-#else
-	net_thread_destroy();
-#endif
+    if(isXbee){
+        xbee_thread_destroy();
+    }
+    else{
+        net_thread_destroy();
+    }
 
-	joy_thread_destroy();
+    joy_thread_destroy();
 
     robot_queue_destroy(&q);
 
@@ -183,5 +193,5 @@ void term_handler(int signal) { // Signal handler
 
 
 void usage(char *program_name) {
-	log_string(3, "Usage: %s [-n host (192.168.1.100)] [-p port (31337)] [-v verbosity (0)]", program_name);
+    log_string(3, "Usage: %s [-n host (192.168.1.100)] [-p port (31337)] [-v verbosity (0)]", program_name);
 }

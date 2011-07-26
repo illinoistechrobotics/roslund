@@ -31,12 +31,14 @@ extern int net_thread_server_create(robot_queue *q, unsigned short port);
 extern int net_thread_client_create(robot_queue *q, char *hostname, unsigned short port);
 extern int net_thread_destroy();
 
-extern int xbee_thread_create(robot_queue *q, char *usbport);
+extern int xbee_thread_create(robot_queue *q, char *usbport, unsigned int b);
 extern int xbee_thread_destroy();
 
 // send_dgm - send a robot communication datagram
 // 	dgm - pointer to the datagram to send
 // 	return - 0 on failure, non-zero otherwise
 extern int send_event(robot_event *ev);
+
+extern int isXbee;
 
 #endif //!ROBOT_COMM_H
