@@ -422,46 +422,44 @@ int xbee_recv_event(robot_event *ev){
     FD_ZERO(&rfds);
     FD_SET(xbeefd,&rfds);
 
-    while(1){
-        if(select(xbeefd + 1, &rfds, NULL, NULL, NULL)){
-            if(count < 125){
-                count = count + read(xbeefd, &buf[count], 126-count);
+    if(select(xbeefd + 1, &rfds, NULL, NULL, NULL)){
+        if(count < 125){
+            count = count + read(xbeefd, &buf[count], 126-count);
+        }
+        for(i=0; i<=count; i++){
+            if(buf[i] == 0x55){
+                start = count;
+                break;
             }
-            for(i=0; i<=count; i++){
-                if(buf[i] == 0x55){
-                    start = count;
-                    break;
+        }
+        for(i=start; i<=count; i++){
+            if(buf[i] == '\n'){
+                newline = count;
+                break;
+            }
+        }
+        if(newline <= start){
+            if(count == 125){
+                if(start == 0){
+                    count = 0;
+                    start = 0;
+                    newline = 0;
+                }
+                else{
+                    memmove(&buf[0], &buf[start], count-start);
+                    count = count-start;
+                    start = 0;
+                    newline = 0;
                 }
             }
-            for(i=start; i<=count; i++){
-                if(buf[i] == '\n'){
-                    newline = count;
-                    break;
-                }
-            }
-            if(newline <= start){
-                if(count == 125){
-                    if(start == 0){
-                        count = 0;
-                        start = 0;
-                        newline = 0;
-                    }
-                    else{
-                        memmove(&buf[0], &buf[start], count-start);
-                        count = count-start;
-                        start = 0;
-                        newline = 0;
-                    }
-                }
-            }
-            else{
-                char newbuf[126];
-                memcpy(&newbuf[0], &buf[start], newline-start);
-                newbuf[newline-start] = '\0';
-                printf("%s",newbuf);
-                fflush(stdout);
-                count = 0;
-            }
+        }
+        else{
+            char newbuf[126];
+            memcpy(&newbuf[0], &buf[start], newline-start);
+            newbuf[newline-start] = '\0';
+            printf("%s",newbuf);
+            fflush(stdout);
+            count = 0;
         }
     }
 
