@@ -30,11 +30,11 @@ enum {
     ROBOT_EVENT_NET                 = 0x10, // Remote information
     ROBOT_EVENT_JOY_AXIS            = 0x20, // Joystick movements
     ROBOT_EVENT_JOY_BUTTON          = 0x30, // Button presses
-    ROBOT_EVENT_TIMER		    = 0x40, // Timer events
-    ROBOT_EVENT_MOTOR	   	    = 0x50, // Motor events
-    ROBOT_EVENT_ADC		    = 0x60, // ADC events
-    ROBOT_EVENT_SET_VAR		    = 0x70, // Set variable events
-    ROBOT_EVENT_READ_VAR	    = 0x80, // Read variable events
+    ROBOT_EVENT_TIMER               = 0x40, // Timer events
+    ROBOT_EVENT_MOTOR               = 0x50, // Motor events
+    ROBOT_EVENT_ADC                 = 0x60, // ADC events
+    ROBOT_EVENT_SET_VAR             = 0x70, // Set variable events
+    ROBOT_EVENT_READ_VAR            = 0x80, // Read variable events
 
     ROBOT_EVENT_NET_STATUS_OK       = ROBOT_EVENT_NET | 0x00, // OK
     ROBOT_EVENT_NET_STATUS_ERR      = ROBOT_EVENT_NET | 0x01, // Error

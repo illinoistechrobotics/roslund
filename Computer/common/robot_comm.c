@@ -59,7 +59,8 @@ static sem_t sem_client; // client semaphore
 // xbee
 static int xbeefd = -1; //xbee file descriptor
 static pthread_t xtid = 0; //xbee thread id
-static sem_t sem_xbee;
+static pthread_t xstid = 0;
+robot_queue send_queue;
 unsigned int baud;
 
 int isXbee = 1;
@@ -101,6 +102,9 @@ void log_event(robot_event *ev, char was_received);
 // xbee main loop
 void *xbee_thread_main(void *args);
 
+// xbee send main loop
+void *xbee_send_thread_main(void *args);
+
 // xbee_open - opens the serial port of the xbee for two way communication
 //  usbport is the /dev/ttyUSB_ given in the command argument -x /dev/ttyUSB0
 //  return - -1 on failure, and the fd if successful
@@ -115,6 +119,10 @@ static int close_xbee();
 // 	return - 0 on failure, no-zero otherwise
 static int xbee_recv_event(robot_event *ev);
 
+//the reqular send event populates a send queue and then xbee send main
+//dequeues and xbee_send sends the event
+static int xbee_send(robot_event *ev);
+
 // xbee_recv_event helper function
 int xtoi(const char *xs, unsigned int *result);
 int isxdigit(char ch);
@@ -124,15 +132,19 @@ int isxdigit(char ch);
 
 int xbee_thread_create(robot_queue *q, char *usbport, unsigned int b){
     // initialize the semaphores
-    sem_init(&sem_xbee, 0, 1);
     baud = b;
 
     // open up the port
     if (open_xbee(usbport) < 0) {
         return 0;
     }
-    // create the thread
+    // recive thread create the thread
     if(pthread_create(&xtid, NULL, xbee_thread_main, q) != 0) {
+        return 0;
+    }
+    // send thread create
+    robot_queue_create(&send_queue);
+    if(pthread_create(&xstid, NULL, xbee_send_thread_main, &send_queue) != 0) {
         return 0;
     }
     return 1;
@@ -144,52 +156,66 @@ int xbee_thread_destroy(){
         return 0;
     }
 
-	// kill the thread
-	if (pthread_cancel(xtid) != 0) {
-		return 0;
-	}
-	// reap the thread
-	if (pthread_join(xtid, NULL) != 0) {
-		return 0;
-	}
-	xtid = -1;
-	// close the socket
-	return close_xbee();
+    // kill the thread
+    if (pthread_cancel(xtid) != 0) {
+        return 0;
+    }
+    // reap the thread
+    if (pthread_join(xtid, NULL) != 0) {
+        return 0;
+    }
+    xtid = -1;
 
+    if (pthread_cancel(xstid) != 0) {
+        return 0;
+    }
+    if (pthread_join(xstid, NULL) != 0) {
+       return 0;
+    }
+    xstid = -1;
+
+    // close the fd
+    return close_xbee();
 }
 
 
 int open_xbee(char *usbport) {
-	//xbeefd = open(usbport, O_RDWR, 0); // for debug purpose can open a file
+    //xbeefd = open(usbport, O_RDWR, 0); // for debug purpose can open a file
     xbeefd = open(usbport, O_RDWR | O_NDELAY | O_ASYNC | O_NOCTTY | O_NONBLOCK, 0);
-	if (xbeefd < 0)
-	{
-		log_errno(1, "Error opening xbee USB port");
-		return -1;
-	}    
-	return xbeefd;
-	
+    if (xbeefd < 0)
+    {
+        log_errno(1, "Error opening xbee USB port");
+        return -1;
+    }
+    return xbeefd;
 }
 
 int close_xbee(){
-	int return_code; 
-	return_code = !close(xbeefd); // close the file descriptor
+    int return_code; 
+    return_code = !close(xbeefd); // close the file descriptor
 
-	xbeefd = -1;
-	return return_code;
-	
+    xbeefd = -1;
+    return return_code;
 }
 
 void *xbee_thread_main(void *args){
     robot_queue *q = (robot_queue *)args;
     robot_event ev;
 
-	while(1) {
-		xbee_recv_event(&ev);
+    while(1) {
+        xbee_recv_event(&ev);
         robot_queue_enqueue(q, &ev);
-		
-	}
-	
+    }
+}
+
+void *xbee_send_thread_main(void *args){
+    robot_queue *q = (robot_queue *)args;
+    robot_event ev;
+
+    while(1) {
+        robot_queue_wait_event(&send_queue, &ev);
+        xbee_send(&ev);
+    }
 }
 
 int net_thread_server_create(robot_queue *q, unsigned short port) {
@@ -249,7 +275,7 @@ void *net_thread_main(void *arg) {
 
     while(1) {
         recv_event(&ev);
-//        robot_queue_enqueue(q, &ev);
+        robot_queue_enqueue(q, &ev);
     }
 }
 
@@ -327,48 +353,15 @@ int open_udp_client(char *hostname, unsigned short port) {
 // 	return - 0 on failure, non-zero otherwise
 int send_event(robot_event *ev) {
     if(isXbee){
-        if(xbeefd < 0) {
-            return 0;
-        }
-
-        unsigned char checksum = (unsigned char)((ev->command + ev->index + ev->value + (ev->value >>8)) % 255);
-        char temp[7];    //2 more bytes than the largest possible value
-        char data[18];
-        char *comma = ",";
-
-        data[0] = 'U';
-        data[1] = '\0';
-        strcat(data, comma);
-        sprintf(temp, "%X", (int)ev->command);
-        strcat(data, temp);
-        strcat(data, comma);
-        sprintf(temp, "%X", (int)ev->index);
-        strcat(data, temp);
-        strcat(data, comma);
-        sprintf(temp, "%X", (int)ev->value);
-        strcat(data, temp);
-        strcat(data, comma);
-        sprintf(temp, "%X", (int)checksum);
-        strcat(data, temp);
-        strcat(data, "\n");
-
-        if (write(xbeefd, data, strlen(data)) < 0)
-        {
-            log_errno(0, "Error sending on xbee");
-            return 0;
-        }
-        usleep(strlen(data)*10000000/baud);  //based on 57600 baud need to make more flexiable about 360hz update rate 
-        //will be longer delay for smaller baud rates and shorter for faster baud rates
-        //bytes/(baud/10)
-
-        return 1;
+        robot_queue_enqueue(&send_queue, ev);
     }
     else{
         struct sockaddr_in remote;
 
         if(client_mode) {
             remote = server;
-        } else {
+        }
+        else {
             sem_wait(&sem_client);
             remote = client;
             sem_post(&sem_client);
@@ -392,6 +385,43 @@ int send_event(robot_event *ev) {
         return 1;
     }
 
+}
+
+int xbee_send(robot_event *ev){
+    if(xbeefd < 0) {
+        return 0;
+    }
+
+    unsigned char checksum = (unsigned char)((ev->command + ev->index + ev->value + (ev->value >>8)) % 255);
+    char temp[7];    //2 more bytes than the largest possible value
+    char data[18];
+    char *comma = ",";
+
+    data[0] = 'U';
+    data[1] = '\0';
+    strcat(data, comma);
+    sprintf(temp, "%X", (int)ev->command);
+    strcat(data, temp);
+    strcat(data, comma);
+    sprintf(temp, "%X", (int)ev->index);
+    strcat(data, temp);
+    strcat(data, comma);
+    sprintf(temp, "%X", (int)ev->value);
+    strcat(data, temp);
+    strcat(data, comma);
+    sprintf(temp, "%X", (int)checksum);
+    strcat(data, temp);
+    strcat(data, "\n");
+
+    if (write(xbeefd, data, strlen(data)) < 0)
+    {
+       log_errno(0, "Error sending on xbee");
+       return 0;
+    }
+    usleep(strlen(data)*10000000/baud);
+    //will be longer delay for smaller baud rates and shorter for faster baud rates
+
+    return 1;
 }
 
 // recv_event - receive a robot comm datagram
@@ -437,6 +467,10 @@ int xbee_recv_event(robot_event *ev){
     int i;
 
     fd_set rfds;
+
+    if(xbeefd < 0) {
+        return 0;
+    }
 
     FD_ZERO(&rfds);
     FD_SET(xbeefd,&rfds);
@@ -492,7 +526,6 @@ int xbee_recv_event(robot_event *ev){
             if(newbuf[i] == ','){
                 newbuf[i] = '\0';
                 if(j>5){
-                    printf("error");
                     return 0;
                 }
                 xtoi(temp, &data[j]);
