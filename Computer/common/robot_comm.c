@@ -16,17 +16,6 @@
 //    with this program; if not, write to the Free Software Foundation, Inc.,
 //    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
-//TODO:
-//make a seperate xbee send thread since there is a delay needed to make sure
-//the data sent is not over written and is limiting the rest of the code.
-//This would require a send_queue which sent_event would populate and the the
-//xbee_send thread would pop the queue and send the event and then wait.
-//This will allow the main loop to run without being limited to the xbee send
-//speed. This isn't a problem right now but if there will be a lot of
-//computation needed to be done on the computer this might be a limiting
-//factor.
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -547,6 +536,7 @@ int xbee_recv_event(robot_event *ev){
         unsigned int checksum2 = (unsigned int)((ev.command + ev.index +(unsigned char)ev.value + (unsigned char)(ev.value >>8)) % 255);
 
         if(checksum2 == checksum){
+            log_event_received(&ev); // log it
             return 1;
         }
         else{
