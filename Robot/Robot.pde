@@ -43,6 +43,8 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly: 
+  xbee_recv_event(&qu);
+  timer(&qu);
   if(robot_queue_dequeue(&qu, &event)){
     //send_event(&event);                  //for debug
     switch (event.command & 0xF0) {
@@ -96,8 +98,6 @@ void loop() {
       break;
     }
   }
-  xbee_recv_event(&qu);
-  timer(&qu);
 #ifdef ADC_
   adc_read(&qu);
 #endif
