@@ -82,6 +82,9 @@ void setPinProfile(char data){
         break;
       }
     }
+#ifdef POWER_LED_
+    pinMode(POWER_LED_PIN, OUTPUT); //double check no harm
+#endif
     break;
   }
 }

@@ -89,7 +89,6 @@ void on_adc_change(robot_event *ev){
 #define MAX_MOTOR_SPEED 154
 
 void on_motor(robot_event *ev) {
-
   if(ev->index == 0){
     ev->value = map(ev->value, 0, 255, MIN_MOTOR_SPEED, MAX_MOTOR_SPEED);
     analogWrite(3, ev->value);

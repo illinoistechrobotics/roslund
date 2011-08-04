@@ -20,7 +20,17 @@
 #include "events.h"
 #include "robot_queue.h"
 
-//#define ADC_   //To use ADC code #define ADC alread defined somewhere else
+//#define WATCHDOG_      //To use a Watchdog timer (to use a watchdog timer, optiboot bootloader is needed)
+#ifdef WATCHDOG_
+#include <avr/wdt.h> //for watch dog
+#endif
+
+#define POWER_LED_
+#ifdef POWER_LED_
+#define POWER_LED_PIN 13     //Sets which pin should flash to indicate powered on 
+#endif
+//#define ADC_           //To use ADC code
+
 #define BAUD 57600
 
 int failcount;
@@ -37,6 +47,11 @@ void setup() {
   // initialize the serial to the specified baud rate 
   open_serial(BAUD);
   
+#ifdef WATCHDOG_
+  wdt_enable(WDTO_250MS); //watch dog initalize 
+  wdt_reset(); //watchdog timer reset 
+#endif
+
   // init event
   on_init(&qu);
 }

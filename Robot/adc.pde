@@ -16,10 +16,10 @@
 //    with this program; if not, write to the Free Software Foundation, Inc.,
 //    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-#define ADC_COUNT 1 //Number of ADC's to poll starting from ADC 0 to 5
-
 //need to define ADC in adc.h
 #ifdef ADC_
+
+#define ADC_COUNT 1 //Number of ADC's to poll starting from ADC 0 to 5
 
 unsigned long last_adc_read = 0;
 

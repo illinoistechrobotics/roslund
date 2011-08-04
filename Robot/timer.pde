@@ -16,8 +16,10 @@
 //    with this program; if not, write to the Free Software Foundation, Inc.,
 //    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-unsigned long  last_sent_10hz = 0;
 unsigned long  last_sent_1hz = 0;
+unsigned long  last_sent_10hz = 0;
+unsigned long  last_sent_100hz = 0;
+unsigned int power_led_state = 0;
 
 void timer(robot_queue *q) {
   // used for failsafe mode
@@ -27,7 +29,16 @@ void timer(robot_queue *q) {
     ev1.index = 3;                       
     ev1.value = 0;
     last_sent_10hz = millis();
-    robot_queue_enqueue(q, &ev1);
+    robot_queue_enqueue(q, &ev1);    
+#ifdef WATCHDOG_
+    wdt_reset(); //watchdog timer reset 
+#endif
+    //flash led
+#ifdef POWER_LED_
+    power_led++;
+    power_led&=B00000001; //more effecient than taking modolus
+    digitalWrite(POWER_LED_PIN,power_led_state);
+#endif
   }
   /* no point for use yet
   if(millis() - last_sent_1hz >= 1000){   //1 hertz 1000 millis
@@ -39,6 +50,17 @@ void timer(robot_queue *q) {
     robot_queue_enqueue(q, &ev2);
   }
   */
+  /* no point for use yet
+  if(millis() - last_sent_1hz >= 10){   //100 hertz 10 millis
+    robot_event ev2;
+    ev2.command = ROBOT_EVENT_TIMER;
+    ev2.index = 5;                       
+    ev2.value = 0;
+    last_sent_100hz= millis();
+    robot_queue_enqueue(q, &ev2);
+  }
+  */
+  
 }
 
 
