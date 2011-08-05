@@ -53,6 +53,7 @@ void on_button_up(robot_event *ev) {
 void on_button_down(robot_event *ev) {
 	if(ev->index == CON_TURBO1 || ev->index == CON_TURBO2){
 		turbo++;
+        robot_event temp;
         temp.command = ROBOT_EVENT_JOY_AXIS;
         temp.index = 255;
         temp.value = 0;
@@ -76,7 +77,7 @@ void on_axis_change(robot_event *ev) {
 	 
 	send_event(ev);
                                                                      //for turbo hack
-	if(axis == CON_XAXIS || axis == CON_YAXIS || axis == CON_RAXIS || axis = 255) {
+	if(axis == CON_XAXIS || axis == CON_YAXIS || axis == CON_RAXIS || axis == 255) {
         if(axis == CON_YAXIS)
             yAxis = value;
         if(axis == CON_XAXIS)
