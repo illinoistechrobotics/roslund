@@ -21,10 +21,10 @@
 
 #define ADC_COUNT 1 //Number of ADC's to poll starting from ADC 0 to 5
 
-unsigned long last_adc_read = 0;
-
 void adc_read(robot_queue *q) {
-  int ADCVals[6] = {0,0,0,0,0,0};
+  static unsigned long last_adc_read = 0;
+  
+  static int ADCVals[6] = {0,0,0,0,0,0};
   int inval;
   robot_event ev;
   int i;

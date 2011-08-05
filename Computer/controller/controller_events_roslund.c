@@ -39,14 +39,25 @@ void on_shutdown() {
 }
 
 void on_button_up(robot_event *ev) {
-	if(ev->index == CON_TURBO1 || ev->index == CON_TURBO2)
+	if(ev->index == CON_TURBO1 || ev->index == CON_TURBO2){
 		turbo--;
+        robot_event temp;
+        temp.command = ROBOT_EVENT_JOY_AXIS;
+        temp.index = 255;
+        temp.value = 0;
+        on_axis_change(&temp);  //update the motor values when turbo is pressed 
+    } 
 	send_event(ev);
 }
 
 void on_button_down(robot_event *ev) {
-	if(ev->index == CON_TURBO1 || ev->index == CON_TURBO2)
+	if(ev->index == CON_TURBO1 || ev->index == CON_TURBO2){
 		turbo++;
+        temp.command = ROBOT_EVENT_JOY_AXIS;
+        temp.index = 255;
+        temp.value = 0;
+        on_axis_change(&temp);
+    }
 	send_event(ev);
 }
 
@@ -64,8 +75,8 @@ void on_axis_change(robot_event *ev) {
 	if(value == 0) value = 1;
 	 
 	send_event(ev);
-    
-	if(axis == CON_XAXIS || axis == CON_YAXIS || axis == CON_RAXIS) {
+                                                                     //for turbo hack
+	if(axis == CON_XAXIS || axis == CON_YAXIS || axis == CON_RAXIS || axis = 255) {
         if(axis == CON_YAXIS)
             yAxis = value;
         if(axis == CON_XAXIS)
@@ -102,16 +113,21 @@ void on_axis_change(robot_event *ev) {
 		
 		// send four axes out
         new_ev.command = ROBOT_EVENT_MOTOR;
-        new_ev.index = 0; new_ev.value = mot1 + 127;
+
+        new_ev.index = 0; 
+        new_ev.value = mot1 + 127;
 		send_event(&new_ev);
 
-        new_ev.index = 1; new_ev.value = mot2 + 127;
+        new_ev.index = 1; 
+        new_ev.value = mot2 + 127;
 		send_event(&new_ev);
 
-        new_ev.index = 2; new_ev.value = mot3 + 127;
+        new_ev.index = 2; 
+        new_ev.value = mot3 + 127;
 		send_event(&new_ev);
 
-        new_ev.index = 3; new_ev.value = mot4 + 127;
+        new_ev.index = 3; 
+        new_ev.value = mot4 + 127;
 		send_event(&new_ev);
 	}
 }
@@ -122,11 +138,11 @@ void on_1hz_timer(robot_event *ev) {
 
 
 void on_10hz_timer(robot_event *ev) {
-	 robot_event ev1;
-	 ev1.command = ROBOT_EVENT_TIMER;
-	 ev1.index = 1;
-	 ev1.value = 0;
-	 send_event(&ev1);
+	robot_event ev1;
+	ev1.command = ROBOT_EVENT_CMD_NOOP;
+	ev1.index = 0;
+	ev1.value = 0;
+	send_event(&ev1);;
 }
 
 

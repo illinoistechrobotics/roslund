@@ -1,4 +1,5 @@
 //    robot.c - receives commands, and moves motors.
+//    Roslund
 //    Copyright (C) 2011 Illinois Institute of Technology Robotics
 //	  <robotics@iit.edu>
 //
@@ -33,14 +34,14 @@
 
 #define BAUD 57600
 
-int failcount;
 robot_queue qu;
 robot_event event;
 
 void failsafe_mode(robot_queue *q);
+int failcount;
 
 void setup() {
-  setProfile('p');
+  setProfile('s');
   setPinProfile('a');
   // create the queue
   robot_queue_create(&qu);
@@ -57,6 +58,7 @@ void setup() {
 }
 
 void loop() {
+
   // put your main code here, to run repeatedly: 
   xbee_recv_event(&qu);
   timer(&qu);
@@ -64,53 +66,45 @@ void loop() {
     //send_event(&event);                  //for debug
     switch (event.command & 0xF0) {
     case ROBOT_EVENT_CMD:
-      failcount = 0;
       on_command_code(&event);
       break;
+    case ROBOT_EVENT_NET:
+      on_status_code(&event);
+      break;
     case ROBOT_EVENT_JOY_AXIS:
-      failcount = 0;
       on_axis_change(&event);
       break;
-    case ROBOT_EVENT_MOTOR:
-      failcount = 0;
-      on_motor(&event);
-      break;
     case ROBOT_EVENT_JOY_BUTTON:
-      failcount = 0;
       if(event.value)	
         on_button_down(&event);
       else
         on_button_up(&event);
       break;
+    case ROBOT_EVENT_TIMER:
+      if(event.index == 1){      // 10 hertz 100 millis
+        on_10hz_timer(&event);
+      }
+      else if(event.index == 2){ // 1 hertz 1000 millis;
+        on_1hz_timer(&event);
+      }
+      else if(event.index == 3){ // 100 hertz 10 millis
+        on_100hz_timer(&event);
+      }
+      break;
+    case ROBOT_EVENT_MOTOR:
+      on_motor(&event);
+      break;
     case ROBOT_EVENT_ADC:
-      failcount = 0;
       on_adc_change(&event);
       break;
     case ROBOT_EVENT_SET_VAR:
-      failcount = 0;
-      //on_set_variable(&event);   //for sending data in other than defined above
+      on_set_variable(&event);   //for sending data in other than defined above
       break;
     case ROBOT_EVENT_READ_VAR:
-      failcount = 0;
-      //on_read_variable(&event);  //for sending data back to controller other than defined above
+      on_read_variable(&event);  //for sending data back to controller other than defined above
       break;
-    case ROBOT_EVENT_TIMER:
-      if(event.index == 1){      // 10 hertz 100 millis
-        failcount = 0;
-        on_10hz_timer(&event);
-      }
-      else if(event.index == 2){ // 1 hertz 1000 millis
-        failcount = 0;
-        on_1hz_timer(&event);
-      }
-      else if(event.index == 3){ // internal 10 hertz timer used for failsafe mode
-        failcount ++;
-        //send_event(&event);
-        if(failcount >= 3){    // 300-400 millis seconds with no signal to failsafe
-          failsafe_mode(&qu); //???????????????????????????maybe send a failsafe event back
-        }
-      }
-      break;
+    default:
+      break;  //not vaild command (maybe send error)????
     }
   }
 #ifdef ADC_

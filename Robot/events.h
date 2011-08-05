@@ -52,10 +52,6 @@ enum {
 // has been intitalized
 extern void on_init();
 
-// on_shutdown runs when the program is going to terminate. The joystick and
-// network are still available
-extern void on_shutdown();
-
 // on_button_up is called when a joystick button is released
 // button is the button number
 extern void on_button_up(robot_event *ev);
@@ -91,6 +87,9 @@ extern void on_set_variable(robot_event *ev);
 // timer that runs each second
 extern void on_1hz_timer(robot_event *ev);
 
+// timer that runs each 100 milliseconds
 extern void on_10hz_timer(robot_event *ev);
 
+//  timer that runs each 10 millisenconds
+extern void on_100hz_timer(robot_event *ev);
 #endif // !EVENTS_H

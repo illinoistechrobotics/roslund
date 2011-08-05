@@ -46,13 +46,6 @@ void on_init(robot_queue *q) {
   
 }
 
-void on_shutdown() {
-  robot_event ev;
-  ev.command = ROBOT_EVENT_CMD_STOP;
-  ev.index = 0;
-  ev.value = 0;
-}
-
 void on_button_up(robot_event *ev) {
   if(ev->index == CON_ARM_UP){
     digitalWrite(2,LOW);
@@ -62,9 +55,9 @@ void on_button_up(robot_event *ev) {
   }
 }
 
-int gripper = 0;
 void on_button_down(robot_event *ev) {	
-
+  static int gripper = 0;
+  
   if(ev->index == CON_ARM_UP){
     digitalWrite(2,HIGH);
   }
@@ -126,16 +119,26 @@ void on_1hz_timer(robot_event *ev){
 }
 
 void on_10hz_timer(robot_event *ev){
+  failcount ++;
+  //send_event(&event);
+  if(failcount >= 3){    // 300-400 millis seconds with no signal go to failsafe
+    failsafe_mode(&qu); //???????????????????????????maybe send a failsafe event back
+  }
+}
+
+void on_100hz_timer(robot_event *ev){
 }
 
 void on_command_code(robot_event *ev) {
   robot_event send_ev;
   switch(ev->command) {
   case ROBOT_EVENT_CMD_NOOP:
+    failcount = 0;
     break;
   case ROBOT_EVENT_CMD_START:
     break;
   case ROBOT_EVENT_CMD_STOP:
+    failsafe_mode(&qu);
     break;
   case ROBOT_EVENT_CMD_REBOOT:
     break;
@@ -145,4 +148,8 @@ void on_command_code(robot_event *ev) {
   }
 }
 
+void on_set_variable(robot_event *ev){ 
+}
 
+void on_read_variable(robot_event *ev){
+}

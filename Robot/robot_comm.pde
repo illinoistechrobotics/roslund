@@ -46,13 +46,14 @@ int send_event(robot_event *ev) {
 // xbee_recv_event - receive a robot comm datagram
 // 	event - pointer to datagram to overwrite
 // 	return - 0 on failure, no-zero otherwise
-char buf[BUF_SIZE + 1];
-int count = 0;
-int start = 0;  
-int newline = 0;
 
 int xbee_recv_event(robot_queue *q){
 
+  static char buf[BUF_SIZE + 1];
+  static int count = 0;
+  static int start = 0;  
+  static int newline = 0;
+  
   while(Serial.available() > 0 && count < BUF_SIZE){
       buf[count]=Serial.read();
       count++;

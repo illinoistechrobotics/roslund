@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
     robot_queue q;
     robot_event ev;
 
-    setProfile('p');
-    while((opt = getopt(argc, argv, "j:n:p:v:x:")) != -1)
+    setProfile('s');
+    while((opt = getopt(argc, argv, "j:n:p:v:x:w:u:b:")) != -1)
         switch (opt)
         {
             case 'n':

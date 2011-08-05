@@ -16,17 +16,17 @@
 //    with this program; if not, write to the Free Software Foundation, Inc.,
 //    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-unsigned long  last_sent_1hz = 0;
-unsigned long  last_sent_10hz = 0;
-unsigned long  last_sent_100hz = 0;
-unsigned int power_led_state = 0;
-
 void timer(robot_queue *q) {
+  static unsigned long  last_sent_1hz = 0;
+  static unsigned long  last_sent_10hz = 0;
+  static unsigned long  last_sent_100hz = 0;
+  static unsigned int power_led_state = 0;
+  
   // used for failsafe mode
   if(millis() - last_sent_10hz >= 100){    //10 hertz 100 millis
     robot_event ev1;
     ev1.command = ROBOT_EVENT_TIMER;
-    ev1.index = 3;                       
+    ev1.index = 1;                       
     ev1.value = 0;
     last_sent_10hz = millis();
     robot_queue_enqueue(q, &ev1);    
@@ -35,8 +35,8 @@ void timer(robot_queue *q) {
 #endif
     //flash led
 #ifdef POWER_LED_
-    power_led++;
-    power_led&=B00000001; //more effecient than taking modolus
+    power_led_state++;
+    power_led_state&=B00000001; //more effecient than taking modolus
     digitalWrite(POWER_LED_PIN,power_led_state);
 #endif
   }
@@ -44,7 +44,7 @@ void timer(robot_queue *q) {
   if(millis() - last_sent_1hz >= 1000){   //1 hertz 1000 millis
     robot_event ev2;
     ev2.command = ROBOT_EVENT_TIMER;
-    ev2.index = 4;                       
+    ev2.index = 2;                       
     ev2.value = 0;
     last_sent_1hz= millis();
     robot_queue_enqueue(q, &ev2);
@@ -54,7 +54,7 @@ void timer(robot_queue *q) {
   if(millis() - last_sent_1hz >= 10){   //100 hertz 10 millis
     robot_event ev2;
     ev2.command = ROBOT_EVENT_TIMER;
-    ev2.index = 5;                       
+    ev2.index = 3;                       
     ev2.value = 0;
     last_sent_100hz= millis();
     robot_queue_enqueue(q, &ev2);
