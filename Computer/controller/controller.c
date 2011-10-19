@@ -35,6 +35,8 @@ static robot_queue *sig_queue;
 void term_handler(int signal);
 void usage(char *program_name);
 
+bool shutdown_temp = false;
+
 int main(int argc, char *argv[])
 {
     //server's address
@@ -43,7 +45,6 @@ int main(int argc, char *argv[])
     char *usb_port = "/dev/ttyUSB0";
     unsigned int baud = 57600;
     log_level = 0;
-    bool shutdown = false;
 
     int opt;
 
@@ -97,7 +98,7 @@ int main(int argc, char *argv[])
     }
 
     //xbee need to be passed in byt the -x command
-    if(isXbee){
+/*    if(isXbee){
         if(!xbee_thread_create(&q, usb_port, baud)){
             log_string(2, "Cannot create the xbee thread");
         }
@@ -107,7 +108,7 @@ int main(int argc, char *argv[])
             log_string(2, "Cannot create the network client thread");
         }
     }
-
+*/
     if(!timer_thread_create(&q)) {
         log_string(2, "cannot create the timer thread");
     }
@@ -127,10 +128,12 @@ int main(int argc, char *argv[])
 
     // main loop, checks for a joystick update
     // and runs the events
-    while(!shutdown) {
-        if (!robot_queue_wait_event(&q, &ev))
-            shutdown = true;
-        switch(ev.command) {
+    while(!shutdown_temp) {
+        if (!robot_queue_wait_event(sig_queue, &ev))
+            shutdown_temp = true;
+        printf("EVENT");
+	fflush(stdout);
+	switch(ev.command) {
             case ROBOT_EVENT_CMD_START:
                 on_init();
                 break;
@@ -144,8 +147,10 @@ int main(int argc, char *argv[])
                     on_button_up(&ev);
                 break;
             case ROBOT_EVENT_CMD_STOP:
-                shutdown = true;
-                on_shutdown();
+                shutdown_temp = true;
+                printf("Shutdown");
+		fflush(stdout);
+		on_shutdown();
                 break;
             case ROBOT_EVENT_TIMER:
                 if(ev.index == 1) {
@@ -188,7 +193,10 @@ void term_handler(int signal) { // Signal handler
     ev.index = 0;
     ev.value = 0;
 
+    printf("EXIT");
+    fflush(stdout);
     robot_queue_enqueue(sig_queue, &ev);
+    shutdown_temp = true;
 }
 
 
